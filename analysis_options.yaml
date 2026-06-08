@@ -1,0 +1,19 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "lib/generated/**"
+  errors:
+    # freezed/json_serializable emit annotations the analyzer flags on
+    # the generated part; harmless, so we silence it project-wide.
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    # A portfolio app documents classes/usecases by hand (see §13) rather
+    # than requiring a doc comment on every public member.
+    public_member_api_docs: false
+    # Long descriptive lines (URLs, prompts, sample data) are allowed.
+    lines_longer_than_80_chars: false
