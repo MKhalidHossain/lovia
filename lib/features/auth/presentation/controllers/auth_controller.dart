@@ -115,14 +115,15 @@ class AuthController extends GetxController {
     status.value = const AuthStatus.authenticating();
     isBusy.value = true;
     final result = await _signInWithProvider(provider);
-    if (result case Success(:final value)) {
-      isBusy.value = false;
-      status.value = AuthStatus.authenticated(value);
-      unawaited(Get.offAllNamed<void>(AppRoutes.shell));
-      return;
+    isBusy.value = false;
+    switch (result) {
+      case Success(:final value):
+        status.value = AuthStatus.authenticated(value);
+        unawaited(Get.offAllNamed<void>(AppRoutes.shell));
+      case Failed(:final failure):
+        status.value = const AuthStatus.unauthenticated();
+        _toast('${provider.label} sign-in failed', failure.message);
     }
-    _toast('Sign-in', '${provider.label} unavailable — continuing as guest.');
-    await continueAsGuest();
   }
 
   Future<void> continueAsGuest() async {

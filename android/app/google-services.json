@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "944243313489",
+    "project_id": "lovia-499003",
+    "storage_bucket": "lovia-499003.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:944243313489:android:REPLACE_AFTER_DOWNLOAD",
+        "android_client_info": {
+          "package_name": "com.example.lovia"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "REPLACE_WITH_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lovia",
+            "certificate_hash": "477dfb0cd899343ece6b88dd1d15e314d8259a67"
+          }
+        },
+        {
+          "client_id": "944243313489-0mseka1b32s2qpm50gcanptbrp8dandb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

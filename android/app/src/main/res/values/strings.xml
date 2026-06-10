@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">lovia</string>
+    <string name="facebook_app_id">812482141194728</string>
+    <!-- Must be "fb" + facebook_app_id — was incorrectly "fb1234" before -->
+    <string name="fb_login_protocol_scheme">fb812482141194728</string>
+    <string name="facebook_client_token">a4ca4faf4f1dc16cce78c309f6b7921f</string>
+</resources>

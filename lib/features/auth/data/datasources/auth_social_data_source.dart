@@ -48,9 +48,17 @@ class AuthSocialDataSourceImpl implements AuthSocialDataSource {
     } on Object catch (_) {}
   }
 
+  // Web-application client ID from Google Cloud Console — must match the
+  // GOOGLE_WEB_CLIENT_ID value on the backend so the ID token audience aligns.
+  // Without serverClientId, GoogleSignIn never fetches an idToken on Android.
+  static const String _googleServerClientId =
+      '944243313489-0mseka1b32s2qpm50gcanptbrp8dandb.apps.googleusercontent.com';
+
   Future<SocialCredential> _google() async {
     try {
-      final account = await GoogleSignIn().signIn();
+      final account = await GoogleSignIn(
+        serverClientId: _googleServerClientId,
+      ).signIn();
       if (account == null) {
         throw const UnauthorizedException('Google sign-in cancelled');
       }
