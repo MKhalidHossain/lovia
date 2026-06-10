@@ -4,7 +4,6 @@ import 'package:lovia/core/routing/app_routes.dart';
 import 'package:lovia/core/state/view_state.dart';
 import 'package:lovia/core/theme/app_colors.dart';
 import 'package:lovia/core/theme/app_spacing.dart';
-import 'package:lovia/core/theme/theme_controller.dart';
 import 'package:lovia/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lovia/features/character/domain/entities/character.dart';
 import 'package:lovia/features/character/presentation/widgets/character_avatar.dart';
@@ -31,7 +30,6 @@ class ProfilePage extends GetView<ProfileController> {
     final theme = Theme.of(context);
     final auth = Get.find<AuthController>();
     final wallet = Get.find<WalletController>();
-    final themeController = Get.find<ThemeController>();
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -118,21 +116,12 @@ class ProfilePage extends GetView<ProfileController> {
                 onTap: () => _showMyCharacters(context),
               ),
               const Divider(height: 1),
-              _Row(
-                icon: Icons.language_rounded,
-                label: 'Language',
-                trailing: 'English',
-                onTap: () => Get.toNamed<void>(AppRoutes.language),
-              ),
-              const Divider(height: 1),
               Obx(
-                () => SwitchListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  secondary: const Icon(Icons.dark_mode_rounded),
-                  title: const Text('Dark mode'),
-                  value: themeController.isDark,
-                  onChanged: (v) => themeController.toggleDark(dark: v),
+                () => _Row(
+                  icon: Icons.language_rounded,
+                  label: 'Language',
+                  trailing: _languageLabel(auth.currentUser?.language),
+                  onTap: () => Get.toNamed<void>(AppRoutes.language),
                 ),
               ),
               const Divider(height: 1),
@@ -159,22 +148,98 @@ class ProfilePage extends GetView<ProfileController> {
                 label: 'Term of Service',
                 onTap: () => Get.snackbar('Terms', 'Opens Terms of Service.'),
               ),
+              const Divider(height: 1),
+              _Row(
+                icon: Icons.shield_outlined,
+                label: 'Privacy policy',
+                onTap: () => Get.snackbar('Privacy', 'Opens Privacy Policy.'),
+              ),
+              const Divider(height: 1),
+              _Row(
+                icon: Icons.logout_rounded,
+                label: 'Log out',
+                color: AppColors.error,
+                onTap: () => _confirmLogout(context, auth),
+              ),
+              const Divider(height: 1),
+              _Row(
+                icon: Icons.delete_outline_rounded,
+                label: 'Delete account',
+                onTap: () => _confirmDelete(context, auth),
+              ),
+              const Divider(height: 1),
+              _Row(
+                icon: Icons.code_rounded,
+                label: 'Version',
+                trailing: '1.5.5.20260521',
+                showChevron: false,
+                onTap: () {},
+              ),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        OutlinedButton.icon(
-          onPressed: auth.logout,
-          icon: const Icon(Icons.logout_rounded),
-          label: const Text('Sign out'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-            foregroundColor: AppColors.error,
-            side: const BorderSide(color: AppColors.error),
-          ),
-        ),
       ],
     );
+  }
+
+  static String _languageLabel(String? code) {
+    return switch (code) {
+      'ja-JP' => 'Japan (Japanese)',
+      'ko-KR' => 'South Korea (Korean)',
+      'en-GB' => 'United Kingdom (English)',
+      'fr-FR' => 'France (French)',
+      'de-DE' => 'Germany (German)',
+      _ => 'United States (English)',
+    };
+  }
+
+  Future<void> _confirmLogout(BuildContext context, AuthController auth) async {
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Log out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back<bool>(result: false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Get.back<bool>(result: true),
+            child: const Text('Log out',
+                style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok ?? false) await auth.logout();
+  }
+
+  Future<void> _confirmDelete(BuildContext context, AuthController auth) async {
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Delete account'),
+        content: const Text(
+          'This will permanently delete your account and sign you out. '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back<bool>(result: false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Get.back<bool>(result: true),
+            child: const Text('Delete',
+                style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok ?? false) {
+      Get.snackbar('Account', 'Account deletion is a demo — signing you out.');
+      await auth.logout();
+    }
   }
 
   String _shortId(String? id) {
@@ -336,25 +401,31 @@ class _Row extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.trailing,
+    this.color,
+    this.showChevron = true,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final String? trailing;
+  final Color? color;
+  final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
+      leading: Icon(icon, color: color),
+      title: Text(label, style: color == null ? null : TextStyle(color: color)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (trailing != null)
-            Text(trailing!,
-                style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-          const Icon(Icons.chevron_right_rounded),
+            Text(
+              trailing!,
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
+          if (showChevron) const Icon(Icons.chevron_right_rounded),
         ],
       ),
       onTap: onTap,

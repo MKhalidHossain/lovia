@@ -16,6 +16,7 @@ import 'package:lovia/features/auth/domain/usecases/request_password_reset.dart'
 import 'package:lovia/features/auth/domain/usecases/reset_password.dart';
 import 'package:lovia/features/auth/domain/usecases/sign_in_as_guest.dart';
 import 'package:lovia/features/auth/domain/usecases/sign_in_with_provider.dart';
+import 'package:lovia/features/auth/domain/usecases/update_language.dart';
 import 'package:lovia/features/auth/domain/usecases/verify_otp.dart';
 import 'package:lovia/features/auth/presentation/controllers/auth_status.dart';
 
@@ -31,6 +32,7 @@ class AuthController extends GetxController {
     required ResetPassword resetPassword,
     required SignInWithProvider signInWithProvider,
     required SignInAsGuest signInAsGuest,
+    required UpdateLanguage updateLanguage,
   })  : _checkAuthStatus = checkAuthStatus,
         _signInWithProvider = signInWithProvider,
         _signInAsGuest = signInAsGuest,
@@ -40,7 +42,8 @@ class AuthController extends GetxController {
         _getCurrentUser = getCurrentUser,
         _requestPasswordReset = requestPasswordReset,
         _verifyOtp = verifyOtp,
-        _resetPassword = resetPassword;
+        _resetPassword = resetPassword,
+        _updateLanguage = updateLanguage;
 
   final CheckAuthStatus _checkAuthStatus;
   final LoginUser _loginUser;
@@ -52,6 +55,7 @@ class AuthController extends GetxController {
   final ResetPassword _resetPassword;
   final SignInWithProvider _signInWithProvider;
   final SignInAsGuest _signInAsGuest;
+  final UpdateLanguage _updateLanguage;
 
   final Rx<AuthStatus> status = const AuthStatus.unknown().obs;
 
@@ -143,10 +147,29 @@ class AuthController extends GetxController {
     }
   }
 
+  /// Persist a language preference to the backend, updating the cached user.
+  Future<bool> updateLanguage(String language) async {
+    final result = await _updateLanguage(language);
+    if (result case Success(:final value)) {
+      status.value = AuthStatus.authenticated(value);
+      return true;
+    }
+    return false;
+  }
+
+  /// Called by the network layer when a refresh fails (401 with no valid
+  /// refresh token) — drops the session and returns to the auth screen.
+  Future<void> handleSessionExpired() async {
+    if (status.value is! Authenticated) return;
+    status.value = const AuthStatus.unauthenticated();
+    _toast('Session expired', 'Please sign in again.');
+    unawaited(Get.offAllNamed<void>(AppRoutes.onboarding));
+  }
+
   Future<void> logout() async {
     await _logoutUser(const NoParams());
     status.value = const AuthStatus.unauthenticated();
-    unawaited(Get.offAllNamed<void>(AppRoutes.login));
+    unawaited(Get.offAllNamed<void>(AppRoutes.onboarding));
   }
 
   Future<bool> requestPasswordReset(String email) {

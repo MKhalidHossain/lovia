@@ -1,11 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:lovia/core/routing/app_routes.dart';
+import 'package:lovia/core/theme/app_colors.dart';
 import 'package:lovia/core/theme/app_spacing.dart';
-import 'package:lovia/core/widgets/app_scaffold.dart';
-import 'package:lovia/core/widgets/ghost_button.dart';
 import 'package:lovia/core/widgets/gradient_button.dart';
+import 'package:lovia/features/auth/presentation/pages/sign_in_sheet.dart';
 
+/// Welcome / onboarding hero — a full-bleed companion image with chat-bubble
+/// teasers and an avatar carousel. "Get Started" opens the sign-in sheet.
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -14,122 +15,163 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
-  final PageController _pages = PageController();
-  int _index = 0;
+  static const List<int> _carouselSeeds = [11, 12, 13, 14, 15];
+  int _selected = 2;
 
-  static const List<_Slide> _slides = [
-    _Slide(
-      icon: Icons.auto_awesome_rounded,
-      title: 'Meet your companions',
-      body: 'Browse characters crafted for cozy chats, bold adventures, '
-          'and everything in between.',
-    ),
-    _Slide(
-      icon: Icons.chat_bubble_rounded,
-      title: 'Chat that feels alive',
-      body: 'Warm, expressive conversations with characters that remember '
-          'your vibe.',
-    ),
-    _Slide(
-      icon: Icons.brush_rounded,
-      title: 'Create your own',
-      body: 'Design a companion — name, personality, backstory, tone — in a '
-          'few taps.',
-    ),
-  ];
-
-  @override
-  void dispose() {
-    _pages.dispose();
-    super.dispose();
-  }
-
-  void _goToLogin() => Get.toNamed<void>(AppRoutes.login);
+  String _hero(int seed) => 'https://picsum.photos/seed/lovia$seed/800/1400';
+  String _avatar(int seed) => 'https://picsum.photos/seed/lovia$seed/200/200';
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLast = _index == _slides.length - 1;
-    return AppScaffold(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      body: Column(
+    return Scaffold(
+      backgroundColor: AppColors.darkBase,
+      body: Stack(
+        fit: StackFit.expand,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(onPressed: _goToLogin, child: const Text('Skip')),
+          // Hero image.
+          CachedNetworkImage(
+            imageUrl: _hero(_carouselSeeds[_selected]),
+            fit: BoxFit.cover,
+            errorWidget: (_, __, ___) =>
+                const ColoredBox(color: AppColors.glowMagenta),
           ),
-          Expanded(
-            child: PageView.builder(
-              controller: _pages,
-              itemCount: _slides.length,
-              onPageChanged: (i) => setState(() => _index = i),
-              itemBuilder: (context, i) => _slides[i],
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              _slides.length,
-              (i) => AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: i == _index ? 22 : 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: i == _index
-                      ? theme.colorScheme.primary
-                      : theme.dividerColor,
-                  borderRadius: BorderRadius.circular(AppRadii.pill),
-                ),
+          // Readability gradient.
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x33000000), Color(0xCC0D0407), Color(0xFF0D0407)],
+                stops: [0.0, 0.55, 1.0],
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          GradientButton(
-            label: isLast ? 'Get started' : 'Next',
-            onPressed: () {
-              if (isLast) {
-                _goToLogin();
-              } else {
-                _pages.nextPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOut,
-                );
-              }
-            },
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    'Welcome back!\nWe missed you',
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      color: AppColors.rose.withValues(alpha: 0.9),
+                      fontSize: 36,
+                    ),
+                  ),
+                  const Spacer(),
+                  const _ChatTeasers(),
+                  const SizedBox(height: AppSpacing.lg),
+                  _Carousel(
+                    seeds: _carouselSeeds,
+                    selected: _selected,
+                    avatar: _avatar,
+                    onSelect: (i) => setState(() => _selected = i),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  GradientButton(
+                    label: 'Get Started',
+                    onPressed: () => showSignInSheet(context),
+                  ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          GhostButton(label: 'I already have an account', onPressed: _goToLogin),
         ],
       ),
     );
   }
 }
 
-class _Slide extends StatelessWidget {
-  const _Slide({required this.icon, required this.title, required this.body});
-
-  final IconData icon;
-  final String title;
-  final String body;
+class _ChatTeasers extends StatelessWidget {
+  const _ChatTeasers();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Column(
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _Bubble('I miss you already…'),
+        SizedBox(height: AppSpacing.xs),
+        _Bubble("I'm always just one message away, love"),
+        SizedBox(height: AppSpacing.xs),
+        _Bubble('…'),
+      ],
+    );
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  const _Bubble(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 260),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontSize: 15),
+      ),
+    );
+  }
+}
+
+class _Carousel extends StatelessWidget {
+  const _Carousel({
+    required this.seeds,
+    required this.selected,
+    required this.avatar,
+    required this.onSelect,
+  });
+
+  final List<int> seeds;
+  final int selected;
+  final String Function(int) avatar;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 72,
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 96, color: theme.colorScheme.primary),
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.displayMedium,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(body, textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
+          for (var i = 0; i < seeds.length; i++)
+            GestureDetector(
+              onTap: () => onSelect(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+                width: i == selected ? 68 : 52,
+                height: i == selected ? 68 : 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: i == selected ? AppColors.accentPink : Colors.white24,
+                    width: i == selected ? 3 : 1.5,
+                  ),
+                ),
+                child: ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: avatar(seeds[i]),
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) =>
+                        const ColoredBox(color: AppColors.darkSurfaceHigh),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

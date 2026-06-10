@@ -1,9 +1,13 @@
 abstract final class StorageKeys {
 
   static const String accessToken = 'lovia.access_token';
+  static const String refreshToken = 'lovia.refresh_token';
   static const String userName = 'lovia.user_name';
   static const String userEmail = 'lovia.user_email';
   static const String userId = 'lovia.user_id';
+  static const String userAvatar = 'lovia.user_avatar';
+  static const String userIsGuest = 'lovia.user_is_guest';
+  static const String deviceId = 'lovia.device_id';
   static const String authProvider = 'lovia.auth_provider';
 
   static const String themeMode = 'lovia.theme_mode';

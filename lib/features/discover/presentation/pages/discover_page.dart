@@ -100,22 +100,27 @@ class _CategoryChips extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Obx(
-              () => ListView.separated(
+            child: Obx(() {
+              // Subscribe to state so the chips refresh once characters load,
+              // since `categories` is derived from the loaded list.
+              controller.state.value;
+              final selected = controller.selectedCategory.value;
+              final categories = controller.categories;
+              return ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                itemCount: controller.categories.length,
+                itemCount: categories.length,
                 separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xs),
                 itemBuilder: (context, i) {
-                  final cat = controller.categories[i];
+                  final cat = categories[i];
                   return ChoiceChip(
                     label: Text(cat),
-                    selected: controller.selectedCategory.value == cat,
+                    selected: selected == cat,
                     onSelected: (_) => controller.selectCategory(cat),
                   );
                 },
-              ),
-            ),
+              );
+            }),
           ),
           Obx(
             () => IconButton(

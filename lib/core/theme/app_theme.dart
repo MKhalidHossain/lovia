@@ -57,6 +57,7 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
+      fontFamily: AppTypography.fontFamily,
       scaffoldBackgroundColor: base,
       colorScheme: scheme,
       textTheme: textTheme,
@@ -73,10 +74,39 @@ abstract final class AppTheme {
         color: surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderRadius: BorderRadius.circular(AppRadii.card),
           side: BorderSide(color: hairline),
         ),
         margin: EdgeInsets.zero,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: surfaceHigh,
+        showDragHandle: true,
+        modalBarrierColor: Colors.black.withValues(alpha: 0.6),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadii.sheet),
+          ),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: surfaceHigh,
+        selectedColor: Colors.white,
+        side: BorderSide(color: hairline),
+        labelStyle: textTheme.bodyMedium?.copyWith(
+          color: textHigh,
+          fontWeight: FontWeight.w600,
+        ),
+        secondaryLabelStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.darkBase,
+          fontWeight: FontWeight.w700,
+        ),
+        shape: const StadiumBorder(),
+        showCheckmark: false,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -96,7 +126,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
-          borderSide: const BorderSide(color: AppColors.violet, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.accentPink, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),

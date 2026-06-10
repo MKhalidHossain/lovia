@@ -51,3 +51,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    # Bundled so text never depends on a runtime network fetch (Nunito is a
+    # variable font; fontWeight maps to its wght axis).
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito.ttf

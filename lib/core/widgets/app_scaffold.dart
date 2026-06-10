@@ -26,16 +26,7 @@ class AppScaffold extends StatelessWidget {
       floatingActionButton: floatingActionButton,
       body: Stack(
         children: [
-          const Positioned(
-            top: -120,
-            right: -80,
-            child: _Glow(color: AppColors.rose),
-          ),
-          const Positioned(
-            bottom: -140,
-            left: -100,
-            child: _Glow(color: AppColors.violet),
-          ),
+          const Positioned.fill(child: AppBackdrop()),
           SafeArea(
             child: Padding(
               padding: padding ?? EdgeInsets.zero,
@@ -48,20 +39,25 @@ class AppScaffold extends StatelessWidget {
   }
 }
 
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color});
-  final Color color;
+/// Near-black base with a deep magenta/maroon radial glow concentrated
+/// top-left (`#5C0F2E → #2A0814`), fading to the base toward the bottom.
+class AppBackdrop extends StatelessWidget {
+  const AppBackdrop({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: 280,
-        height: 280,
+    return const IgnorePointer(
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [color.withValues(alpha: 0.28), color.withValues(alpha: 0)],
+            center: Alignment(-0.6, -0.95),
+            radius: 1.3,
+            colors: [
+              AppColors.glowMagenta,
+              AppColors.glowMaroon,
+              AppColors.darkBase,
+            ],
+            stops: [0.0, 0.4, 0.85],
           ),
         ),
       ),

@@ -4,8 +4,12 @@ import 'package:lovia/core/network/interceptors/auth_interceptor.dart';
 import 'package:lovia/core/network/interceptors/log_interceptor.dart';
 
 class DioClient {
-  DioClient({required Future<String?> Function() tokenProvider})
-      : _dio = Dio(
+  DioClient({
+    required Future<String?> Function() tokenProvider,
+    required Future<String?> Function() refreshTokenProvider,
+    required Future<void> Function(String access, String refresh) onTokensRefreshed,
+    required Future<void> Function() onSessionExpired,
+  }) : _dio = Dio(
           BaseOptions(
             baseUrl: Env.apiBaseUrl,
             connectTimeout: Env.networkTimeout,
@@ -17,7 +21,12 @@ class DioClient {
         ) {
     _dio.interceptors.addAll([
       AppLogInterceptor(),
-      AuthInterceptor(tokenProvider),
+      AuthInterceptor(
+        readToken: tokenProvider,
+        readRefreshToken: refreshTokenProvider,
+        onTokensRefreshed: onTokensRefreshed,
+        onSessionExpired: onSessionExpired,
+      ),
     ]);
   }
 

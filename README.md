@@ -21,34 +21,55 @@ a fake for a real API touches **nothing above the `data` layer**.
 
 | Area | Backend |
 |---|---|
-| Auth: register, login, forgot/verify-OTP/reset password | **REAL** API |
-| Discover · Character detail · Chat · Create · Wallet · Premium · Profile | **MOCK** (fake datasources, persisted with GetStorage) |
+| Auth: register, login, **Google, Facebook, Guest**, refresh, logout, OTP reset | **REAL** API |
+| Profile: get/update (`/users/me`, language preference) | **REAL** API |
+| Discover · Character detail · Chat · Create · Wallet · Premium | **MOCK** (fake datasources, persisted with GetStorage) |
 
-### Derived auth contract (from `lovia_backend/`)
+### Auth contract (`lovia_backend/`)
 
-The backend is the single source of truth. The contract below was reverse-
-engineered from its routes/controllers/model/middleware:
+The backend is the single source of truth. Every sign-in endpoint returns the
+**same** envelope: `{ accessToken, refreshToken, user }` where
+`user = { id, name, email, avatarUrl, coins, isGuest, language }`.
 
 | Action | Method & Path | Request body | Success response | Auth header |
 |---|---|---|---|---|
-| Register | `POST /auth/register` | `{name, email, password}` | `201 {message}` (no auto-login) | — |
-| Login | `POST /auth/login` | `{email, password}` | `200 {token, name}` | — |
+| Register | `POST /auth/register` | `{name, email, password}` | `201 {accessToken, refreshToken, user}` | — |
+| Login | `POST /auth/login` | `{email, password}` | `200 {accessToken, refreshToken, user}` | — |
+| Google | `POST /auth/google` | `{idToken}` | `200 {accessToken, refreshToken, user}` | — |
+| Facebook | `POST /auth/facebook` | `{accessToken}` | `200 {accessToken, refreshToken, user}` | — |
+| Guest | `POST /auth/guest` | `{deviceId}` | `200 {accessToken, refreshToken, user}` | — |
+| Refresh | `POST /auth/refresh` | `{refreshToken}` | `200 {accessToken, refreshToken}` | — |
+| Logout | `POST /auth/logout` | — | `200 {message}` (bumps `tokenVersion`) | `Bearer <access>` |
 | Forgot password | `POST /auth/forgot-password` | `{email}` | `200 {message}` | — |
 | Verify OTP | `POST /auth/verify-otp` | `{email, otp}` | `200 {message}` | — |
 | Reset password | `POST /auth/reset-password` | `{email, otp, newPassword}` | `200 {message}` | — |
-| (protected routes) | — | — | — | `Authorization: Bearer <token>` |
+| Get profile | `GET /users/me` | — | `200 {user}` | `Bearer <access>` |
+| Update profile | `PATCH /users/me` | `{language?, name?}` | `200 {user}` | `Bearer <access>` |
 
-**Notable realities (and how the app handles them):**
+- Auth is mounted at **`/auth`**, profile at **`/users`** (not under `/api`);
+  backend `PORT=3000`. The auth header is `Authorization: Bearer <access>`.
+- **Access token** is short-lived (`15m`); **refresh token** is long-lived
+  (`30d`) and carries the user's `tokenVersion`. Logout / password-reset bump
+  `tokenVersion` to invalidate outstanding refresh tokens server-side.
 
-- Auth is mounted at **`/auth`** (not `/api/auth`); backend `PORT=3000`.
-- There is **no** `current-user`, **no** refresh, and **no** logout endpoint.
-  - `GetCurrentUser` / `CheckAuthStatus` rebuild the user from the **cached
-    session** — the `id` is decoded from the JWT `userId` claim, the `name` from
-    the login response, and the `email` from the login form.
-  - `LogoutUser` clears local tokens (no server call).
-  - There is **no** `RefreshInterceptor` — the backend issues a single 7-day JWT.
-- The auth header is exactly `Authorization: Bearer <token>` (matches the
-  backend's `middleware/auth.js`).
+### ⚠️ Mismatches found vs. the original spec — and how I adapted
+
+The provided spec assumed a social-first backend that didn't exist yet. The
+**real** `lovia_backend` started as an email/password + OTP API only. Rather
+than invent endpoints silently, I **extended the backend** to satisfy the spec:
+
+| Spec expected | Backend reality (before) | Resolution |
+|---|---|---|
+| `POST /auth/google {idToken}` | absent | **Added** — verifies the ID token via Google's `tokeninfo` endpoint (asserts `aud == GOOGLE_WEB_CLIENT_ID`), upserts the user. |
+| `POST /auth/facebook {accessToken}` | absent | **Added** — verifies via the Facebook Graph API, upserts the user. |
+| `POST /auth/guest {deviceId}` | absent | **Added** — upserts a guest keyed by `deviceId`. |
+| `POST /auth/refresh` (single retry) | absent | **Added** + a Dio `AuthInterceptor` that refreshes once on 401, retries, else forces logout → auth. |
+| `POST /auth/logout` | absent | **Added** — invalidates refresh tokens via `tokenVersion`. |
+| `GET/PATCH /users/me` | absent | **Added** — profile fetch + language update. |
+| Response `{accessToken, refreshToken, user{...}}` | login returned `{token, name}` | **Standardized** every auth endpoint on the spec envelope. |
+| `User{avatarUrl, coins, isGuest}` | only `name/email/password/otp…` | **Extended** the Mongoose `User` model (provider, googleId/facebookId, deviceId, avatarUrl, coins, isGuest, language, tokenVersion). |
+
+Social verification uses Node 18+ global `fetch` (no new npm dependency).
 
 ---
 
@@ -57,9 +78,14 @@ engineered from its routes/controllers/model/middleware:
 The UI is modelled on a modern AI-companion app layout while keeping all
 content fictional, tasteful, and 18+-gated:
 
-- **Splash → Welcome sheet** — Continue with **Google / Apple / Facebook**, or
-  **Login (Guest mode)**, behind an "I am 18+" confirmation, plus **Use email**
-  for the real backend flow.
+- **Splash** — full-bleed companion hero with orbiting avatars, "Lovia AI ·
+  Find Your Perfect Match", thin pink progress bar; routes to the shell or
+  onboarding based on the stored session.
+- **Onboarding** — "Welcome back, we missed you" hero with chat-bubble teasers
+  and an avatar carousel; **Get Started** opens the **sign-in sheet**.
+- **Sign-in sheet** — a dark modal bottom sheet (drag handle, 28px radius):
+  Continue with **Google / Facebook**, **Login (Guest mode)**, and **Use email
+  instead**, all behind an "I confirm I am 18" radio, with ToS/Privacy links.
 - **Home — "For You"** — a swipeable card deck (drag or use ✕ / chat / ♥) with
   LIKE / NOPE stamps.
 - **Discover** — category chips, a **Filter** sheet (gender / age 18+ / style),
@@ -68,8 +94,10 @@ content fictional, tasteful, and 18+-gated:
   personality, language, relationship, preview, category, up to 3 tags) with a
   **Random AI** filler.
 - **Chats**, **Character detail**, **Chat thread** (canned SFW replies).
-- **Profile** — account, gold Premium card, My wallet + Daily task cards,
-  community banner, settings (My characters, Language, dark mode, …), sign out.
+- **Profile** — account header (avatar, name, `Id : …`), gold Premium card, My
+  wallet + Daily task tiles, community banner, settings list (My character,
+  Language, Rate, Share, Feedback, Terms, Privacy, **Log out** in red w/ confirm,
+  **Delete account**, Version). Language + logout hit the real backend.
 - **Top up** — membership card + a gems shop (purchases credit the wallet) +
   Watch-Ad mission.
 - **Daily task** — 7-day reward streak (claim once/day) + Earn-Reward list.
@@ -77,28 +105,37 @@ content fictional, tasteful, and 18+-gated:
 
 ## Authentication (email + social + guest)
 
-- **Email / OTP** → real `lovia_backend` (see the contract above).
-- **Guest mode** → fully functional offline; creates a local session.
-- **Google / Apple / Facebook** → real provider SDKs
-  (`google_sign_in`, `sign_in_with_apple`, `flutter_facebook_auth`). Because the
-  backend exposes no social endpoints, a successful provider sign-in creates a
-  **local session** client-side. If a provider isn't configured (no OAuth
-  credentials), the flow **falls back to guest** gracefully — so the app runs
-  today without any setup.
+All paths hit the **real** `lovia_backend` and persist `{accessToken,
+refreshToken}` in `flutter_secure_storage`:
 
-### Enabling real social sign-in (optional)
+- **Email / OTP** → `POST /auth/login|register` + the OTP reset flow.
+- **Google** → `google_sign_in` returns an `idToken`, POSTed to `/auth/google`
+  (backend verifies it with Google and upserts the user).
+- **Facebook** → `flutter_facebook_auth` returns an `accessToken`, POSTed to
+  `/auth/facebook`.
+- **Guest** → a stable per-install `deviceId` is POSTed to `/auth/guest`. If the
+  network is unavailable, it **falls back to a local-only guest session** and
+  shows a non-blocking toast (offline-tolerant, per spec).
+- **Refresh** → on any `401`, the `AuthInterceptor` calls `/auth/refresh` once,
+  retries the original request, and on failure forces logout → auth screen.
 
-The buttons work as guest-fallback out of the box. To make the providers
-actually authenticate, add the usual platform credentials:
+### Configuring social sign-in
+
+The backend ships with `GOOGLE_WEB_CLIENT_ID` set in `lovia_backend/.env`.
+Add the usual platform credentials to make the native SDKs return tokens:
 
 - **Google** — iOS: reversed-client-id URL scheme + `GIDClientID` in
-  `Info.plist`; Android: an OAuth client (Google Cloud / Firebase).
-- **Apple** — enable the *Sign in with Apple* capability/entitlement (iOS 13+).
-- **Facebook** — `FacebookAppID`/`FacebookClientToken` in `Info.plist` and
-  `AndroidManifest.xml` (see `flutter_facebook_auth` setup).
-
-No credentials are committed; until they're added the providers fall back to a
-guest session.
+  `Info.plist`; Android: an OAuth client (Google Cloud / Firebase) matching the
+  app's SHA-1.
+- **Facebook** *(credentials intentionally blank for now)* — paste your App ID
+  and Client Token where the TODO placeholders are:
+  - iOS `ios/Runner/Info.plist` → `FacebookAppID`, `FacebookClientToken`,
+    `CFBundleURLSchemes` (`fb<APP_ID>`), `LSApplicationQueriesSchemes`.
+  - Android `android/app/src/main/res/values/strings.xml` →
+    `facebook_app_id`, `facebook_client_token`; plus the manifest
+    `meta-data` / `FacebookActivity` entries.
+  - Backend reads nothing extra for Facebook (it verifies the access token via
+    the Graph API at runtime).
 
 ---
 
@@ -268,13 +305,23 @@ Covers (mocktail):
 Lints: **`very_good_analysis`** (strict, zero warnings). Tests: `flutter_test`
 + `mocktail`.
 
-## Design system (§11)
+## Design system
 
-Dark-first with a polished light theme (toggle persisted in Profile). All tokens
-live in `core/theme` — **no magic numbers or raw hex in widgets**. Rose→violet
-brand gradient, amber for coins/premium, soft-glass cards, an 8-pt spacing
-scale, a named type scale, hero card→detail transitions, shimmer skeletons, and
-a custom typing indicator.
+Modelled on the product screenshots. All tokens live in `core/theme` — **no
+magic numbers or raw hex in widgets**:
+
+- **Background** — near-black `#0D0407` with a deep magenta/maroon radial glow
+  (`#5C0F2E → #2A0814`) concentrated top-left (`AppBackdrop`).
+- **Primary gradient** — pink → purple `#FF4D5E → #C13BFF` (buttons, accents);
+  standalone accent pink `#FF2D78` (selected language, nav dash).
+- **Surfaces** — cards `#1A1A1C` @ 22px radius; sheets `#1F1F22` @ 28px with a
+  drag handle; glass chips at white-12%; selected chip = white pill, dark text.
+- **Type** — **Nunito** via `google_fonts` (rounded humanist): page titles ~28
+  bold, card titles ~20 bold, body ~15.
+- **Bottom nav** — five label-less outline icons; the active item shows a small
+  pink underline dash.
+- Plus an 8-pt spacing scale, hero card→detail transitions, shimmer skeletons,
+  and a custom typing indicator.
 
 ## Known limitations
 
@@ -284,11 +331,12 @@ a custom typing indicator.
   LLM behind them.
 - Premium membership is **UI-only** (no billing); gem-pack "purchases" are a
   demo but **do** credit the local wallet so balances/transactions update.
-- Social sign-in falls back to a guest session unless OAuth credentials are
-  configured (see *Authentication* above).
+- Native social sign-in needs platform OAuth credentials to return tokens
+  (Facebook's are intentionally blank — see *Configuring social sign-in*). Guest
+  + email work with zero setup; guest is also offline-tolerant.
 - Swipe "likes" on Home are kept in memory for the session, not persisted.
 - Localization is scaffolded (delegates wired, English only); the language
-  picker persists a choice but strings aren't externalized to ARB files yet.
-- The display font falls back to the system family (no font asset is bundled).
-- The backend exposes no refresh/current-user/logout endpoints, so the session
-  is a single 7-day JWT validated locally (see the auth contract above).
+  picker persists the choice and PATCHes `/users/me`, but strings aren't
+  externalized to ARB files yet.
+- "Delete account" is a demo (no backend delete endpoint) — it confirms then
+  signs out.

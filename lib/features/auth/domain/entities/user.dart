@@ -8,5 +8,9 @@ class User with _$User {
     required String id,
     required String name,
     required String email,
+    String? avatarUrl,
+    @Default(0) int coins,
+    @Default(false) bool isGuest,
+    String? language,
   }) = _User;
 }

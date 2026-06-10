@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -6,6 +8,7 @@ import 'package:lovia/core/theme/app_colors.dart';
 import 'package:lovia/core/theme/app_spacing.dart';
 import 'package:lovia/core/widgets/app_scaffold.dart';
 import 'package:lovia/core/widgets/gradient_button.dart';
+import 'package:lovia/features/auth/presentation/controllers/auth_controller.dart';
 
 class LanguagePage extends StatefulWidget {
   const LanguagePage({super.key});
@@ -15,25 +18,26 @@ class LanguagePage extends StatefulWidget {
 }
 
 class _LanguagePageState extends State<LanguagePage> {
-  static const List<(String, String)> _languages = [
-    ('🇺🇸', 'United States (English)'),
-    ('🇯🇵', 'Japan (Japanese)'),
-    ('🇰🇷', 'South Korea (Korean)'),
-    ('🇦🇺', 'Australia (English)'),
-    ('🇨🇦', 'Canada (English)'),
-    ('🇨🇦', 'Canada (French)'),
-    ('🇬🇧', 'United Kingdom (English)'),
-    ('🇨🇭', 'Switzerland (German)'),
-    ('🇨🇭', 'Switzerland (French)'),
-    ('🇸🇪', 'Sweden (Swedish)'),
-    ('🇩🇪', 'Germany (German)'),
-    ('🇫🇷', 'France (French)'),
-    ('🇧🇪', 'Belgium (Dutch)'),
+  // (flag, label, locale code)
+  static const List<(String, String, String)> _languages = [
+    ('🇺🇸', 'United States (English)', 'en-US'),
+    ('🇯🇵', 'Japan (Japanese)', 'ja-JP'),
+    ('🇰🇷', 'South Korea (Korean)', 'ko-KR'),
+    ('🇦🇺', 'Australia (English)', 'en-AU'),
+    ('🇨🇦', 'Canada (English)', 'en-CA'),
+    ('🇨🇦', 'Canada (French)', 'fr-CA'),
+    ('🇬🇧', 'United Kingdom (English)', 'en-GB'),
+    ('🇨🇭', 'Switzerland (German)', 'de-CH'),
+    ('🇨🇭', 'Switzerland (French)', 'fr-CH'),
+    ('🇸🇪', 'Sweden (Swedish)', 'sv-SE'),
+    ('🇩🇪', 'Germany (German)', 'de-DE'),
+    ('🇫🇷', 'France (French)', 'fr-FR'),
+    ('🇧🇪', 'Belgium (Dutch)', 'nl-BE'),
   ];
 
   final GetStorage _box = GetStorage();
-  late String _selected =
-      _box.read<String>(StorageKeys.locale) ?? _languages.first.$2;
+  late String _selectedCode =
+      _box.read<String>(StorageKeys.locale) ?? _languages.first.$3;
 
   @override
   Widget build(BuildContext context) {
@@ -48,10 +52,10 @@ class _LanguagePageState extends State<LanguagePage> {
               itemCount: _languages.length,
               separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
               itemBuilder: (context, i) {
-                final (flag, label) = _languages[i];
-                final selected = _selected == label;
+                final (flag, label, code) = _languages[i];
+                final selected = _selectedCode == code;
                 return GestureDetector(
-                  onTap: () => setState(() => _selected = label),
+                  onTap: () => setState(() => _selectedCode = code),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
@@ -71,7 +75,9 @@ class _LanguagePageState extends State<LanguagePage> {
                           selected
                               ? Icons.radio_button_checked
                               : Icons.radio_button_unchecked,
-                          color: selected ? AppColors.rose : theme.disabledColor,
+                          color: selected
+                              ? AppColors.accentPink
+                              : theme.disabledColor,
                         ),
                       ],
                     ),
@@ -85,10 +91,15 @@ class _LanguagePageState extends State<LanguagePage> {
             child: GradientButton(
               label: 'Save',
               onPressed: () {
-                _box.write(StorageKeys.locale, _selected);
+                // Persist locally and best-effort PATCH /users/me.
+                _box.write(StorageKeys.locale, _selectedCode);
+                final label = _languages
+                    .firstWhere((l) => l.$3 == _selectedCode)
+                    .$2;
+                unawaited(Get.find<AuthController>().updateLanguage(_selectedCode));
                 Get
                   ..back<void>()
-                  ..snackbar('Language', 'Saved: $_selected');
+                  ..snackbar('Language', 'Saved: $label');
               },
             ),
           ),

@@ -27,16 +27,40 @@ String makeToken(String userId, int exp) {
   return '$header.$payload.signature';
 }
 
+AuthResponseModel authResponse({
+  required String id,
+  required String name,
+  String? email,
+  bool isGuest = false,
+}) {
+  return AuthResponseModel(
+    accessToken: makeToken(id, 9999999999),
+    refreshToken: 'refresh-$id',
+    user: UserModel(id: id, name: name, email: email, isGuest: isGuest),
+  );
+}
+
 void main() {
   late MockRemote remote;
   late MockLocal local;
   late MockSocial social;
   late AuthRepositoryImpl repo;
 
-  final futureExp = DateTime.now()
-          .add(const Duration(days: 7))
-          .millisecondsSinceEpoch ~/
-      1000;
+  final futureExp =
+      DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch ~/ 1000;
+
+  // Default stub for the (large) cacheSession signature.
+  void stubCache() {
+    when(() => local.cacheSession(
+          accessToken: any(named: 'accessToken'),
+          refreshToken: any(named: 'refreshToken'),
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          userId: any(named: 'userId'),
+          avatarUrl: any(named: 'avatarUrl'),
+          isGuest: any(named: 'isGuest'),
+        )).thenAnswer((_) async {});
+  }
 
   setUp(() {
     remote = MockRemote();
@@ -46,17 +70,12 @@ void main() {
   });
 
   group('login', () {
-    test('on success caches the session and returns a user with the JWT id',
+    test('on success caches the session and returns the backend user',
         () async {
-      final token = makeToken('42', futureExp);
-      when(() => remote.login(email: 'a@b.com', password: 'secret'))
-          .thenAnswer((_) async => AuthResponseModel(token: token, name: 'Aria'));
-      when(() => local.cacheSession(
-            token: any(named: 'token'),
-            name: any(named: 'name'),
-            email: any(named: 'email'),
-            userId: any(named: 'userId'),
-          )).thenAnswer((_) async {});
+      when(() => remote.login(email: 'a@b.com', password: 'secret')).thenAnswer(
+        (_) async => authResponse(id: '42', name: 'Aria', email: 'a@b.com'),
+      );
+      stubCache();
 
       final result = await repo.login(email: 'a@b.com', password: 'secret');
 
@@ -65,14 +84,15 @@ void main() {
       expect(user.id, '42');
       expect(user.name, 'Aria');
       expect(user.email, 'a@b.com');
-      verify(
-        () => local.cacheSession(
-          token: token,
-          name: 'Aria',
-          email: 'a@b.com',
-          userId: '42',
-        ),
-      ).called(1);
+      verify(() => local.cacheSession(
+            accessToken: any(named: 'accessToken'),
+            refreshToken: 'refresh-42',
+            name: 'Aria',
+            email: 'a@b.com',
+            userId: '42',
+            avatarUrl: any(named: 'avatarUrl'),
+            isGuest: any(named: 'isGuest'),
+          )).called(1);
     });
 
     test('maps NetworkException to NetworkFailure', () async {
@@ -115,9 +135,11 @@ void main() {
     test('returns the cached user when the token is valid', () async {
       final token = makeToken('7', futureExp);
       when(() => local.readToken()).thenAnswer((_) async => token);
+      when(() => local.readUserId()).thenAnswer((_) async => '7');
       when(() => local.readName()).thenAnswer((_) async => 'Kai');
       when(() => local.readEmail()).thenAnswer((_) async => 'k@b.com');
-      when(() => local.readUserId()).thenAnswer((_) async => null);
+      when(() => local.readAvatar()).thenAnswer((_) async => null);
+      when(() => local.readIsGuest()).thenAnswer((_) async => false);
 
       final result = await repo.checkAuthStatus();
 
@@ -126,9 +148,11 @@ void main() {
       expect(user.name, 'Kai');
     });
 
-    test('clears storage and fails when the token is expired', () async {
+    test('clears storage and fails when expired with no refresh token',
+        () async {
       final expired = makeToken('7', 1);
       when(() => local.readToken()).thenAnswer((_) async => expired);
+      when(() => local.readRefreshToken()).thenAnswer((_) async => null);
       when(() => local.clear()).thenAnswer((_) async {});
 
       final result = await repo.checkAuthStatus();
@@ -146,6 +170,8 @@ void main() {
 
   group('logout', () {
     test('clears local storage and returns Unit', () async {
+      when(() => remote.logout()).thenAnswer((_) async {});
+      when(() => social.signOut()).thenAnswer((_) async {});
       when(() => local.clear()).thenAnswer((_) async {});
       final result = await repo.logout();
       expect(result, isA<Success<Unit, Failure>>());
@@ -154,37 +180,52 @@ void main() {
   });
 
   group('guest + social', () {
-    test('loginAsGuest caches a local session and returns a Guest user',
+    test('loginAsGuest exchanges the device id and returns a Guest user',
         () async {
-      when(() => local.cacheSession(
-            token: any(named: 'token'),
-            name: any(named: 'name'),
-            email: any(named: 'email'),
-            userId: any(named: 'userId'),
-          )).thenAnswer((_) async {});
+      when(() => local.deviceId()).thenAnswer((_) async => 'device-xyz');
+      when(() => remote.guest(deviceId: 'device-xyz')).thenAnswer(
+        (_) async => authResponse(id: 'guest-1', name: 'Guest', isGuest: true),
+      );
+      stubCache();
 
       final result = await repo.loginAsGuest();
 
       final user = (result as Success<User, Failure>).value;
       expect(user.name, 'Guest');
-      expect(user.id, startsWith('guest-'));
+      expect(user.isGuest, isTrue);
     });
 
-    test('signInWithProvider caches the provider account', () async {
+    test('loginAsGuest falls back to an offline guest when the network fails',
+        () async {
+      when(() => local.deviceId()).thenAnswer((_) async => 'device-xyz');
+      when(() => remote.guest(deviceId: any(named: 'deviceId')))
+          .thenThrow(const NetworkException());
+      stubCache();
+      when(() => local.readToken()).thenAnswer((_) async => 'lovia-offline-guest');
+      when(() => local.readUserId()).thenAnswer((_) async => 'guest-1');
+      when(() => local.readName()).thenAnswer((_) async => 'Guest');
+      when(() => local.readEmail()).thenAnswer((_) async => '');
+      when(() => local.readAvatar()).thenAnswer((_) async => null);
+      when(() => local.readIsGuest()).thenAnswer((_) async => true);
+
+      final result = await repo.loginAsGuest();
+
+      final user = (result as Success<User, Failure>).value;
+      expect(user.name, 'Guest');
+      expect(user.isGuest, isTrue);
+    });
+
+    test('signInWithProvider exchanges the Google id token', () async {
       when(() => social.signIn(AuthProvider.google)).thenAnswer(
-        (_) async => const SocialAccount(
-          id: 'g-1',
-          name: 'Sol',
-          email: 's@b.com',
+        (_) async => const SocialCredential(
           provider: AuthProvider.google,
+          idToken: 'google-id-token',
         ),
       );
-      when(() => local.cacheSession(
-            token: any(named: 'token'),
-            name: any(named: 'name'),
-            email: any(named: 'email'),
-            userId: any(named: 'userId'),
-          )).thenAnswer((_) async {});
+      when(() => remote.google(idToken: 'google-id-token')).thenAnswer(
+        (_) async => authResponse(id: 'g-1', name: 'Sol', email: 's@b.com'),
+      );
+      stubCache();
 
       final result = await repo.signInWithProvider(AuthProvider.google);
 

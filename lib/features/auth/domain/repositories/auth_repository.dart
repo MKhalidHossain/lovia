@@ -24,6 +24,9 @@ abstract interface class AuthRepository {
 
   Future<Result<User, Failure>> checkAuthStatus();
 
+  /// Persist the user's language preference (`PATCH /users/me`).
+  Future<Result<User, Failure>> updateLanguage(String language);
+
   Future<Result<Unit, Failure>> logout();
 
   Future<Result<Unit, Failure>> requestPasswordReset({required String email});

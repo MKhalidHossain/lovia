@@ -17,6 +17,7 @@ import 'package:lovia/features/auth/domain/usecases/request_password_reset.dart'
 import 'package:lovia/features/auth/domain/usecases/reset_password.dart';
 import 'package:lovia/features/auth/domain/usecases/sign_in_as_guest.dart';
 import 'package:lovia/features/auth/domain/usecases/sign_in_with_provider.dart';
+import 'package:lovia/features/auth/domain/usecases/update_language.dart';
 import 'package:lovia/features/auth/domain/usecases/verify_otp.dart';
 import 'package:lovia/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lovia/features/character/data/datasources/character_local_data_source.dart';
@@ -42,7 +43,18 @@ class AppBindings extends Bindings {
     const secure = FlutterSecureStorage();
 
     const authLocal = AuthLocalDataSourceImpl(secure);
-    final dioClient = DioClient(tokenProvider: authLocal.readToken);
+    final dioClient = DioClient(
+      tokenProvider: authLocal.readToken,
+      refreshTokenProvider: authLocal.readRefreshToken,
+      onTokensRefreshed: (access, refresh) =>
+          authLocal.updateTokens(accessToken: access, refreshToken: refresh),
+      onSessionExpired: () async {
+        await authLocal.clear();
+        if (Get.isRegistered<AuthController>()) {
+          await Get.find<AuthController>().handleSessionExpired();
+        }
+      },
+    );
     final authRemote = AuthRemoteDataSourceImpl(dioClient.dio);
     final authRepo = AuthRepositoryImpl(
       remote: authRemote,
@@ -72,6 +84,7 @@ class AppBindings extends Bindings {
           resetPassword: ResetPassword(authRepo),
           signInWithProvider: SignInWithProvider(authRepo),
           signInAsGuest: SignInAsGuest(authRepo),
+          updateLanguage: UpdateLanguage(authRepo),
         ),
         permanent: true,
       )

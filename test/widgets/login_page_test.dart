@@ -13,6 +13,7 @@ import 'package:lovia/features/auth/domain/usecases/request_password_reset.dart'
 import 'package:lovia/features/auth/domain/usecases/reset_password.dart';
 import 'package:lovia/features/auth/domain/usecases/sign_in_as_guest.dart';
 import 'package:lovia/features/auth/domain/usecases/sign_in_with_provider.dart';
+import 'package:lovia/features/auth/domain/usecases/update_language.dart';
 import 'package:lovia/features/auth/domain/usecases/verify_otp.dart';
 import 'package:lovia/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:lovia/features/auth/presentation/pages/login_page.dart';
@@ -38,6 +39,7 @@ void main() {
         resetPassword: ResetPassword(repo),
         signInWithProvider: SignInWithProvider(repo),
         signInAsGuest: SignInAsGuest(repo),
+        updateLanguage: UpdateLanguage(repo),
       ),
     );
   });

@@ -4,7 +4,7 @@ import 'package:lovia/core/error/exceptions.dart';
 import 'package:lovia/features/auth/data/models/auth_response_model.dart';
 
 abstract interface class AuthRemoteDataSource {
-  Future<void> register({
+  Future<AuthResponseModel> register({
     required String name,
     required String email,
     required String password,
@@ -13,6 +13,13 @@ abstract interface class AuthRemoteDataSource {
     required String email,
     required String password,
   });
+  Future<AuthResponseModel> google({required String idToken});
+  Future<AuthResponseModel> facebook({required String accessToken});
+  Future<AuthResponseModel> guest({required String deviceId});
+  Future<TokenPairModel> refresh({required String refreshToken});
+  Future<void> logout();
+  Future<UserModel> getMe();
+  Future<UserModel> updateProfile({String? language, String? name});
   Future<void> requestPasswordReset({required String email});
   Future<void> verifyOtp({required String email, required String otp});
   Future<void> resetPassword({
@@ -27,15 +34,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio _dio;
 
   @override
-  Future<void> register({
+  Future<AuthResponseModel> register({
     required String name,
     required String email,
     required String password,
   }) async {
-    await _post(
+    final data = await _send(
       ApiPaths.register,
-      {'name': name, 'email': email, 'password': password},
+      body: {'name': name, 'email': email, 'password': password},
     );
+    return AuthResponseModel.fromJson(data);
   }
 
   @override
@@ -43,21 +51,71 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
-    final data = await _post(
+    final data = await _send(
       ApiPaths.login,
-      {'email': email, 'password': password},
+      body: {'email': email, 'password': password},
     );
     return AuthResponseModel.fromJson(data);
   }
 
   @override
+  Future<AuthResponseModel> google({required String idToken}) async {
+    final data = await _send(ApiPaths.google, body: {'idToken': idToken});
+    return AuthResponseModel.fromJson(data);
+  }
+
+  @override
+  Future<AuthResponseModel> facebook({required String accessToken}) async {
+    final data = await _send(
+      ApiPaths.facebook,
+      body: {'accessToken': accessToken},
+    );
+    return AuthResponseModel.fromJson(data);
+  }
+
+  @override
+  Future<AuthResponseModel> guest({required String deviceId}) async {
+    final data = await _send(ApiPaths.guest, body: {'deviceId': deviceId});
+    return AuthResponseModel.fromJson(data);
+  }
+
+  @override
+  Future<TokenPairModel> refresh({required String refreshToken}) async {
+    final data = await _send(
+      ApiPaths.refresh,
+      body: {'refreshToken': refreshToken},
+    );
+    return TokenPairModel.fromJson(data);
+  }
+
+  @override
+  Future<void> logout() async {
+    await _send(ApiPaths.logout, body: const {});
+  }
+
+  @override
+  Future<UserModel> getMe() async {
+    final data = await _send(ApiPaths.usersMe, method: 'GET');
+    return UserModel.fromJson(data);
+  }
+
+  @override
+  Future<UserModel> updateProfile({String? language, String? name}) async {
+    final body = <String, dynamic>{};
+    if (language != null) body['language'] = language;
+    if (name != null) body['name'] = name;
+    final data = await _send(ApiPaths.usersMe, method: 'PATCH', body: body);
+    return UserModel.fromJson(data);
+  }
+
+  @override
   Future<void> requestPasswordReset({required String email}) async {
-    await _post(ApiPaths.forgotPassword, {'email': email});
+    await _send(ApiPaths.forgotPassword, body: {'email': email});
   }
 
   @override
   Future<void> verifyOtp({required String email, required String otp}) async {
-    await _post(ApiPaths.verifyOtp, {'email': email, 'otp': otp});
+    await _send(ApiPaths.verifyOtp, body: {'email': email, 'otp': otp});
   }
 
   @override
@@ -66,19 +124,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String otp,
     required String newPassword,
   }) async {
-    await _post(
+    await _send(
       ApiPaths.resetPassword,
-      {'email': email, 'otp': otp, 'newPassword': newPassword},
+      body: {'email': email, 'otp': otp, 'newPassword': newPassword},
     );
   }
 
-  Future<Map<String, dynamic>> _post(
-    String path,
-    Map<String, dynamic> body,
-  ) async {
+  Future<Map<String, dynamic>> _send(
+    String path, {
+    String method = 'POST',
+    Map<String, dynamic>? body,
+  }) async {
     final Response<dynamic> response;
     try {
-      response = await _dio.post<dynamic>(path, data: body);
+      response = await _dio.request<dynamic>(
+        path,
+        data: body,
+        options: Options(method: method),
+      );
     } on DioException catch (e) {
       if (e.response == null) {
         throw NetworkException(e.message ?? 'Network error');

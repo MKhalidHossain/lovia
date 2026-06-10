@@ -1,7 +1,14 @@
 import 'package:lovia/features/character/data/models/character_model.dart';
 
 abstract final class CharacterSampleData {
-  static String _avatar(int seed) => 'https://picsum.photos/seed/lovia$seed/600/800';
+  // Curated Unsplash portraits (free hotlinking CDN), cropped to 600×800
+  // portrait format with the face centred.
+  static String _avatar(String id) =>
+      'https://images.unsplash.com/photo-$id?w=600&h=800&fit=crop&crop=faces&q=80';
+
+  // pravatar.cc provides reliable square celebrity/model portraits (600×600).
+  // BoxFit.cover fills the portrait card without distortion.
+  static String _pravatar(int n) => 'https://i.pravatar.cc/600?img=$n';
 
   static List<CharacterModel> get all => [
         CharacterModel(
@@ -16,7 +23,7 @@ abstract final class CharacterSampleData {
           tone: 'Gentle and reassuring',
           greeting: "Hey you. Kettle's on — how was your day?",
           accent: 0,
-          avatarUrl: _avatar(1),
+          avatarUrl: _avatar('1502323777036-f29e3972d82f'),
         ),
         CharacterModel(
           id: 'c2',
@@ -26,11 +33,11 @@ abstract final class CharacterSampleData {
           traits: const ['Bold', 'Playful', 'Spontaneous'],
           age: 27,
           backstory: 'Kai has hiked three continents and never met a sunrise '
-              'he could sleep through.',
+              'she could sleep through.',
           tone: 'Energetic and encouraging',
           greeting: 'New day, new horizon. Where are we headed?',
           accent: 1,
-          avatarUrl: _avatar(2),
+          avatarUrl: _avatar('1496440737103-cd596325d314'),
         ),
         CharacterModel(
           id: 'c3',
@@ -44,7 +51,7 @@ abstract final class CharacterSampleData {
           tone: 'Dreamy and expressive',
           greeting: 'I was just mixing colors that reminded me of you.',
           accent: 2,
-          avatarUrl: _avatar(3),
+          avatarUrl: _avatar('1529626455594-4ff0802cfb7e'),
         ),
         CharacterModel(
           id: 'c4',
@@ -58,7 +65,7 @@ abstract final class CharacterSampleData {
           tone: 'Measured and insightful',
           greeting: 'Good to see you. What are we figuring out today?',
           accent: 3,
-          avatarUrl: _avatar(4),
+          avatarUrl: _avatar('1534528741775-53994a69daeb'),
         ),
         CharacterModel(
           id: 'c5',
@@ -72,7 +79,7 @@ abstract final class CharacterSampleData {
           tone: 'Bright and affectionate',
           greeting: 'There you are! I saved you the comfy seat.',
           accent: 4,
-          avatarUrl: _avatar(5),
+          avatarUrl: _avatar('1500917293891-ef795e70e1f6'),
         ),
         CharacterModel(
           id: 'c6',
@@ -86,7 +93,7 @@ abstract final class CharacterSampleData {
           tone: 'Poetic and tender',
           greeting: 'The sky is clear tonight. Want to look up with me?',
           accent: 5,
-          avatarUrl: _avatar(6),
+          avatarUrl: _avatar('1524504388940-b1c1722653e1'),
         ),
         CharacterModel(
           id: 'c7',
@@ -96,11 +103,11 @@ abstract final class CharacterSampleData {
           traits: const ['Motivating', 'Honest', 'Steady'],
           age: 35,
           backstory: 'Rex trains runners and keeps a notebook of every small '
-              'win his friends ever told him about.',
+              'win her friends ever told her about.',
           tone: 'Supportive and direct',
           greeting: "Let's get after it. What's one goal for today?",
           accent: 6,
-          avatarUrl: _avatar(7),
+          avatarUrl: _avatar('1515886657613-9f3515b0c78f'),
         ),
         CharacterModel(
           id: 'c8',
@@ -114,7 +121,7 @@ abstract final class CharacterSampleData {
           tone: 'Playful and warm',
           greeting: 'I made too much pasta again. Lucky you.',
           accent: 7,
-          avatarUrl: _avatar(8),
+          avatarUrl: _avatar('1494790108377-be9c29b29330'),
         ),
         CharacterModel(
           id: 'c9',
@@ -128,7 +135,7 @@ abstract final class CharacterSampleData {
           tone: 'Shy but devoted',
           greeting: 'Player two has arrived. Ready when you are.',
           accent: 8,
-          avatarUrl: _avatar(9),
+          avatarUrl: _avatar('1517841905240-472988babdf9'),
         ),
         CharacterModel(
           id: 'c10',
@@ -142,7 +149,7 @@ abstract final class CharacterSampleData {
           tone: 'Breezy and curious',
           greeting: "Guess where I am right now. You'll never get it.",
           accent: 9,
-          avatarUrl: _avatar(10),
+          avatarUrl: _avatar('1544005313-94ddf0286df2'),
         ),
         CharacterModel(
           id: 'c11',
@@ -156,7 +163,7 @@ abstract final class CharacterSampleData {
           tone: 'Soothing and attentive',
           greeting: "Take a breath. I'm here — tell me everything.",
           accent: 10,
-          avatarUrl: _avatar(11),
+          avatarUrl: _avatar('1508214751196-bcfd4ca60f91'),
         ),
         CharacterModel(
           id: 'c12',
@@ -170,7 +177,7 @@ abstract final class CharacterSampleData {
           tone: 'Confident and flirty',
           greeting: 'Hop on — I know a road with the best view.',
           accent: 11,
-          avatarUrl: _avatar(12),
+          avatarUrl: _avatar('1488426862026-3ee34a7d66df'),
         ),
         CharacterModel(
           id: 'c13',
@@ -184,7 +191,7 @@ abstract final class CharacterSampleData {
           tone: 'Lyrical and affectionate',
           greeting: 'You arrived like a good line I forgot I was writing.',
           accent: 12,
-          avatarUrl: _avatar(13),
+          avatarUrl: _avatar('1554151228-14d9def656e4'),
         ),
         CharacterModel(
           id: 'c14',
@@ -198,7 +205,84 @@ abstract final class CharacterSampleData {
           tone: 'Calm and dependable',
           greeting: 'Welcome aboard. Smooth seas today, I think.',
           accent: 13,
-          avatarUrl: _avatar(14),
+          avatarUrl: _avatar('1506863530036-1efeddceb993'),
+        ),
+
+        // ── Male characters ──────────────────────────────────────────────
+        CharacterModel(
+          id: 'c15',
+          name: 'Luca',
+          bio: 'Charming barista who turns every morning into a ritual.',
+          category: 'Cozy',
+          traits: const ['Warm', 'Funny', 'Attentive'],
+          age: 24,
+          backstory: 'Luca learned to make coffee in Naples and believes the '
+              'perfect cup is just an excuse to slow down with someone.',
+          tone: 'Laid-back and playful',
+          greeting: 'Double shot, extra smile — coming right up.',
+          accent: 0,
+          gender: 'Male',
+          avatarUrl: _pravatar(12),
+        ),
+        CharacterModel(
+          id: 'c16',
+          name: 'Cole',
+          bio: 'Architect with a soft spot for rooftop sunsets.',
+          category: 'Creative',
+          traits: const ['Thoughtful', 'Calm', 'Perceptive'],
+          age: 30,
+          backstory: 'Cole designs spaces that feel like home and spends his '
+              'lunch breaks sketching the skylines nobody notices.',
+          tone: 'Measured and sincere',
+          greeting: "I saved the window seat. The light's perfect right now.",
+          accent: 3,
+          gender: 'Male',
+          avatarUrl: _avatar('1500648767791-00dcc994a43e'),
+        ),
+        CharacterModel(
+          id: 'c17',
+          name: 'Finn',
+          bio: 'Rugged trail guide who always finds the hidden path.',
+          category: 'Adventurous',
+          traits: const ['Bold', 'Protective', 'Witty'],
+          age: 32,
+          backstory: 'Finn has led expeditions across three mountain ranges '
+              'and keeps a worn journal of every summit he has shared.',
+          tone: 'Confident and dry-humored',
+          greeting: "Weather looks perfect. Pack light — I'll carry the rest.",
+          accent: 6,
+          gender: 'Male',
+          avatarUrl: _pravatar(11),
+        ),
+        CharacterModel(
+          id: 'c18',
+          name: 'Zane',
+          bio: 'Outdoor photographer chasing golden hour every day.',
+          category: 'Adventurous',
+          traits: const ['Curious', 'Spontaneous', 'Warm'],
+          age: 28,
+          backstory: 'Zane quit his desk job to shoot national parks and '
+              'has not regretted a single cold morning since.',
+          tone: 'Upbeat and genuine',
+          greeting: 'You showed up just in time — the light is unreal today.',
+          accent: 9,
+          gender: 'Male',
+          avatarUrl: _pravatar(60),
+        ),
+        CharacterModel(
+          id: 'c19',
+          name: 'Dante',
+          bio: 'Brooding novelist who writes about real people — maybe you.',
+          category: 'Creative',
+          traits: const ['Intense', 'Romantic', 'Mysterious'],
+          age: 30,
+          backstory: 'Dante fills hardback notebooks at all-night cafés and '
+              'leaves the last page of every book blank for the right reader.',
+          tone: 'Poetic and intense',
+          greeting: 'I was hoping you would show up. Sit — tell me everything.',
+          accent: 12,
+          gender: 'Male',
+          avatarUrl: _pravatar(68),
         ),
       ];
 }

@@ -8,7 +8,6 @@ import 'package:lovia/features/auth/presentation/pages/reset_password_page.dart'
 import 'package:lovia/features/auth/presentation/pages/signup_page.dart';
 import 'package:lovia/features/auth/presentation/pages/splash_page.dart';
 import 'package:lovia/features/auth/presentation/pages/verify_otp_page.dart';
-import 'package:lovia/features/auth/presentation/pages/welcome_page.dart';
 import 'package:lovia/features/character/presentation/bindings/character_detail_binding.dart';
 import 'package:lovia/features/character/presentation/pages/character_detail_page.dart';
 import 'package:lovia/features/chat/presentation/bindings/chat_binding.dart';
@@ -30,9 +29,10 @@ abstract final class AppPages {
       name: AppRoutes.onboarding,
       page: () => const OnboardingPage(),
     ),
+    // Welcome is the onboarding hero; the sign-in sheet is presented over it.
     GetPage<void>(
       name: AppRoutes.welcome,
-      page: () => const WelcomePage(),
+      page: () => const OnboardingPage(),
     ),
     GetPage<void>(name: AppRoutes.login, page: () => const LoginPage()),
     GetPage<void>(name: AppRoutes.signup, page: () => const SignupPage()),
