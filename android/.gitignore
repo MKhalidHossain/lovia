@@ -12,3 +12,9 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# OAuth / Firebase / service credentials — never commit these.
+client_secret_*.json
+google-services.json
+credentials.json
+service-account.json

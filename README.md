@@ -7,9 +7,6 @@
 
 Warm, romantic, premium tone. Audience 18+. Multi-language ready.
 
-> **Screenshots:** _add captures of Splash · Discover · Character detail · Chat
-> · Wallet · Premium · Profile here._
-
 ---
 
 ## What's real vs. mocked
@@ -256,8 +253,9 @@ dart run build_runner build --delete-conflicting-outputs   # freezed + json_seri
 flutter run --dart-define=API_BASE_URL=<host-for-your-target>
 ```
 
-The backend is local, so set `API_BASE_URL` per target (defaults to the
-Android-emulator host if omitted):
+If `API_BASE_URL` is omitted, the app talks to the **hosted backend**
+(`https://lovia-backend-rvud.onrender.com`). To use a locally running
+backend instead, set it per target:
 
 | Target | `API_BASE_URL` |
 |---|---|
